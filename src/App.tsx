@@ -29,10 +29,8 @@ function App() {
   }, []);
 
   const handleSave = (newUrl: string) => {
-    setManagementUrl(newUrl);
     setShowConfig(false);
-    webviewRef.current?.show();
-    setTimeout(() => webviewRef.current?.reload(), 50);
+    setManagementUrl(newUrl); // triggers WebViewArea to respawn with new URL
   };
 
   const handleClose = () => {

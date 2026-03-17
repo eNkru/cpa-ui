@@ -70,7 +70,7 @@ pub fn run() {
                 .accelerator("CmdOrCtrl+,")
                 .build(app)?;
 
-            let app_submenu = SubmenuBuilder::new(app, "App")
+            let app_submenu = SubmenuBuilder::new(app, "CPA UI")
                 .item(&reload)
                 .item(&settings)
                 .separator()
@@ -91,9 +91,35 @@ pub fn run() {
                 }
             });
 
+            if let Some(window) = app.get_webview_window("main") {
+                let win = window.clone();
+                let handle = app.handle().clone();
+                window.on_window_event(move |event| {
+                    if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                        api.prevent_close();
+                        if let Some(wv) = handle.get_webview("content-webview") {
+                            let _ = wv.hide();
+                        }
+                        let _ = win.minimize();
+                    }
+                });
+            }
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![get_config, save_config])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error building tauri application")
+        .run(|app, event| {
+            if let tauri::RunEvent::Reopen { .. } = event {
+                let windows = app.webview_windows();
+                for (_, w) in &windows {
+                    let _ = w.unminimize();
+                    let _ = w.set_focus();
+                }
+                if let Some(wv) = app.get_webview("content-webview") {
+                    let _ = wv.show();
+                }
+            }
+        });
 }

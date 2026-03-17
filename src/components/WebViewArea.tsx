@@ -55,6 +55,7 @@ const WebViewArea = forwardRef<WebViewAreaHandle, WebViewAreaProps>(
         .then((wv) => {
           if (tokenRef.current !== token) { wv.close(); return; }
           webviewRef.current = wv;
+          wv.show(); // always show after spawn
         })
         .catch((e) => console.error('[WebViewArea] spawn failed:', e));
     };
@@ -66,9 +67,11 @@ const WebViewArea = forwardRef<WebViewAreaHandle, WebViewAreaProps>(
     }));
 
     useEffect(() => {
-      spawn(managementUrl);
+      // small delay on mount to let the window finish rendering before spawning
+      const t = setTimeout(() => spawn(managementUrl), 100);
       return () => {
-        tokenRef.current++; // invalidate any in-flight spawn
+        clearTimeout(t);
+        tokenRef.current++;
         webviewRef.current?.close();
         webviewRef.current = null;
       };

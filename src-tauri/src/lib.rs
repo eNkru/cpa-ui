@@ -70,11 +70,16 @@ pub fn run() {
                 .accelerator("CmdOrCtrl+,")
                 .build(app)?;
 
+            let quit = MenuItemBuilder::new("Quit CPA UI")
+                .id("quit")
+                .accelerator("CmdOrCtrl+Q")
+                .build(app)?;
+
             let app_submenu = SubmenuBuilder::new(app, "CPA UI")
                 .item(&reload)
                 .item(&settings)
                 .separator()
-                .quit()
+                .item(&quit)
                 .build()?;
 
             let menu = MenuBuilder::new(app)
@@ -87,6 +92,7 @@ pub fn run() {
                 match event.id().as_ref() {
                     "reload" => { let _ = app.emit("menu:reload", ()); }
                     "settings" => { let _ = app.emit("menu:settings", ()); }
+                    "quit" => { app.exit(0); }
                     _ => {}
                 }
             });

@@ -99,13 +99,9 @@ pub fn run() {
 
             if let Some(window) = app.get_webview_window("main") {
                 let win = window.clone();
-                let handle = app.handle().clone();
                 window.on_window_event(move |event| {
                     if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                         api.prevent_close();
-                        if let Some(wv) = handle.get_webview("content-webview") {
-                            let _ = wv.hide();
-                        }
                         let _ = win.minimize();
                     }
                 });
@@ -123,9 +119,9 @@ pub fn run() {
                     let _ = w.unminimize();
                     let _ = w.set_focus();
                 }
-                if let Some(wv) = app.get_webview("content-webview") {
-                    let _ = wv.show();
-                }
+                // Emit reload so the frontend respawns the content webview,
+                // avoiding the black screen that occurs after restoring from dock.
+                let _ = app.emit("menu:reload", ());
             }
         });
 }

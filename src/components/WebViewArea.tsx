@@ -4,6 +4,8 @@ import { getCurrentWindow, LogicalPosition, LogicalSize } from '@tauri-apps/api/
 
 export interface WebViewAreaHandle {
   reload: () => void;
+  hide: () => Promise<void>;
+  show: () => Promise<void>;
 }
 
 interface WebViewAreaProps {
@@ -59,6 +61,8 @@ const WebViewArea = forwardRef<WebViewAreaHandle, WebViewAreaProps>(
 
     useImperativeHandle(ref, () => ({
       reload: () => spawn(managementUrl),
+      hide: () => webviewRef.current?.hide() ?? Promise.resolve(),
+      show: () => webviewRef.current?.show() ?? Promise.resolve(),
     }));
 
     useEffect(() => {

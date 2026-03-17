@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Menu, Submenu, MenuItem } from '@tauri-apps/api/menu';
+import { listen } from '@tauri-apps/api/event';
 import { getConfig, DEFAULT_URL } from './lib/tauri';
 import WebViewArea, { WebViewAreaHandle } from './components/WebViewArea';
 import ConfigModal from './components/ConfigModal';
@@ -15,42 +15,29 @@ function App() {
       .catch(() => {});
   }, []);
 
-  // Build native menu
   useEffect(() => {
-    let mounted = true;
-
-    const buildMenu = async () => {
-      const reloadItem = await MenuItem.new({
-        id: 'reload',
-        text: 'Reload',
-        accelerator: 'CmdOrCtrl+R',
-        action: () => webviewRef.current?.reload(),
-      });
-
-      const settingsItem = await MenuItem.new({
-        id: 'settings',
-        text: 'Settings...',
-        accelerator: 'CmdOrCtrl+,',
-        action: () => setShowConfig(true),
-      });
-
-      const appSubmenu = await Submenu.new({
-        text: 'App',
-        items: [reloadItem, settingsItem],
-      });
-
-      const menu = await Menu.new({ items: [appSubmenu] });
-      if (mounted) await menu.setAsAppMenu();
+    const unlistenPromises = [
+      listen('menu:reload', () => webviewRef.current?.reload()),
+      listen('menu:settings', async () => {
+        await webviewRef.current?.hide();
+        setShowConfig(true);
+      }),
+    ];
+    return () => {
+      unlistenPromises.forEach((p) => p.then((fn) => fn()));
     };
-
-    buildMenu().catch(console.error);
-    return () => { mounted = false; };
   }, []);
 
   const handleSave = (newUrl: string) => {
     setManagementUrl(newUrl);
     setShowConfig(false);
+    webviewRef.current?.show();
     setTimeout(() => webviewRef.current?.reload(), 50);
+  };
+
+  const handleClose = () => {
+    setShowConfig(false);
+    webviewRef.current?.show();
   };
 
   return (
@@ -60,7 +47,7 @@ function App() {
         <ConfigModal
           currentUrl={managementUrl}
           onSave={handleSave}
-          onClose={() => setShowConfig(false)}
+          onClose={handleClose}
         />
       )}
     </div>

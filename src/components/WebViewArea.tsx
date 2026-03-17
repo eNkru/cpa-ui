@@ -1,0 +1,95 @@
+import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import { Webview } from '@tauri-apps/api/webview';
+import { getCurrentWindow, LogicalPosition, LogicalSize } from '@tauri-apps/api/window';
+
+export interface WebViewAreaHandle {
+  reload: () => void;
+}
+
+interface WebViewAreaProps {
+  managementUrl: string;
+}
+
+const LABEL = 'content-webview';
+
+async function getLogicalSize() {
+  const win = getCurrentWindow();
+  const size = await win.innerSize();
+  const scale = await win.scaleFactor();
+  return { width: size.width / scale, height: size.height / scale };
+}
+
+async function closeExisting() {
+  try {
+    const existing = await Webview.getByLabel(LABEL);
+    if (existing) await existing.close();
+  } catch {
+    // didn't exist, fine
+  }
+}
+
+async function spawnWebview(url: string): Promise<Webview> {
+  await closeExisting();
+
+  const win = getCurrentWindow();
+  const { width, height } = await getLogicalSize();
+
+  return new Promise<Webview>((resolve, reject) => {
+    const wv = new Webview(win, LABEL, { url, x: 0, y: 0, width, height });
+    wv.once('tauri://created', () => resolve(wv));
+    wv.once('tauri://error', (e) => reject(new Error(String((e as any)?.payload ?? e))));
+  });
+}
+
+const WebViewArea = forwardRef<WebViewAreaHandle, WebViewAreaProps>(
+  ({ managementUrl }, ref) => {
+    const webviewRef = useRef<Webview | null>(null);
+    // token increments on each spawn attempt; stale callbacks check against it
+    const tokenRef = useRef(0);
+
+    const spawn = (url: string) => {
+      const token = ++tokenRef.current;
+      spawnWebview(url)
+        .then((wv) => {
+          if (tokenRef.current !== token) { wv.close(); return; }
+          webviewRef.current = wv;
+        })
+        .catch((e) => console.error('[WebViewArea] spawn failed:', e));
+    };
+
+    useImperativeHandle(ref, () => ({
+      reload: () => spawn(managementUrl),
+    }));
+
+    useEffect(() => {
+      spawn(managementUrl);
+      return () => {
+        tokenRef.current++; // invalidate any in-flight spawn
+        webviewRef.current?.close();
+        webviewRef.current = null;
+      };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [managementUrl]);
+
+    useEffect(() => {
+      const win = getCurrentWindow();
+      let unlisten: (() => void) | undefined;
+
+      win.onResized(async () => {
+        const wv = webviewRef.current;
+        if (!wv) return;
+        const { width, height } = await getLogicalSize();
+        await wv.setPosition(new LogicalPosition(0, 0));
+        await wv.setSize(new LogicalSize(width, height));
+      }).then((fn) => { unlisten = fn; });
+
+      return () => { unlisten?.(); };
+    }, []);
+
+    return <div data-testid="webview" style={{ flex: 1, width: '100%' }} />;
+  }
+);
+
+WebViewArea.displayName = 'WebViewArea';
+
+export default WebViewArea;

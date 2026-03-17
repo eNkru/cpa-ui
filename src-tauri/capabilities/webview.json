@@ -1,0 +1,11 @@
+{
+  "identifier": "webview-cap",
+  "description": "Allow creating child webviews",
+  "windows": ["main", "content-webview"],
+  "permissions": [
+    "core:webview:allow-create-webview",
+    "core:webview:allow-webview-close",
+    "core:webview:allow-set-webview-position",
+    "core:webview:allow-set-webview-size"
+  ]
+}

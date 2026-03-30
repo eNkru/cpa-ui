@@ -119,9 +119,6 @@ pub fn run() {
                     let _ = w.unminimize();
                     let _ = w.set_focus();
                 }
-                // Emit reload so the frontend respawns the content webview,
-                // avoiding the black screen that occurs after restoring from dock.
-                let _ = app.emit("menu:reload", ());
             }
         });
 }

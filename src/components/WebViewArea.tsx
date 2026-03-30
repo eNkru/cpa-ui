@@ -80,7 +80,7 @@ const WebViewArea = forwardRef<WebViewAreaHandle, WebViewAreaProps>(
 
     useEffect(() => {
       const win = getCurrentWindow();
-      let unlisten: (() => void) | undefined;
+      const unlistens: (() => void)[] = [];
 
       win.onResized(async () => {
         const wv = webviewRef.current;
@@ -88,9 +88,19 @@ const WebViewArea = forwardRef<WebViewAreaHandle, WebViewAreaProps>(
         const { width, height } = await getLogicalSize();
         await wv.setPosition(new LogicalPosition(0, 0));
         await wv.setSize(new LogicalSize(width, height));
-      }).then((fn) => { unlisten = fn; });
+      }).then((fn) => { unlistens.push(fn); });
 
-      return () => { unlisten?.(); };
+      // When the window is restored/focused, ensure the webview is visible.
+      // Only respawn if it's somehow gone (e.g. crashed), not on every focus.
+      win.onFocusChanged(async ({ payload: focused }) => {
+        if (!focused) return;
+        const wv = webviewRef.current;
+        if (wv) {
+          await wv.show();
+        }
+      }).then((fn) => { unlistens.push(fn); });
+
+      return () => { unlistens.forEach((fn) => fn()); };
     }, []);
 
     return <div data-testid="webview" style={{ flex: 1, width: '100%' }} />;

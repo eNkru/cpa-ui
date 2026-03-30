@@ -18,6 +18,20 @@ impl Default for AppConfig {
     }
 }
 
+#[cfg(target_os = "macos")]
+fn handle_run_event(app: &tauri::AppHandle, event: &tauri::RunEvent) {
+    if let tauri::RunEvent::Reopen { .. } = event {
+        let windows = app.webview_windows();
+        for (_, w) in &windows {
+            let _ = w.unminimize();
+            let _ = w.set_focus();
+        }
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+fn handle_run_event(_: &tauri::AppHandle, _: &tauri::RunEvent) {}
+
 pub fn validate_url(url: &str) -> Result<(), String> {
     if url.starts_with("http://") || url.starts_with("https://") {
         Ok(())
@@ -113,12 +127,6 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("error building tauri application")
         .run(|app, event| {
-            if let tauri::RunEvent::Reopen { .. } = event {
-                let windows = app.webview_windows();
-                for (_, w) in &windows {
-                    let _ = w.unminimize();
-                    let _ = w.set_focus();
-                }
-            }
+            handle_run_event(app, &event);
         });
 }

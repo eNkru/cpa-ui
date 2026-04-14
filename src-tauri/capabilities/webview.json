@@ -8,6 +8,7 @@
     "core:webview:allow-webview-hide",
     "core:webview:allow-webview-show",
     "core:webview:allow-set-webview-position",
-    "core:webview:allow-set-webview-size"
+    "core:webview:allow-set-webview-size",
+    "core:webview:allow-set-webview-focus"
   ]
 }

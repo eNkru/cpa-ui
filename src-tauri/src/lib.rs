@@ -2,7 +2,7 @@ use std::fs;
 use serde::{Deserialize, Serialize};
 use tauri::Manager;
 use tauri::Emitter;
-use tauri::menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder};
+use tauri::menu::{MenuBuilder, MenuItemBuilder, PredefinedMenuItem, SubmenuBuilder};
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -74,6 +74,24 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
+            let about = PredefinedMenuItem::about(
+                app,
+                Some("About CPA UI"),
+                None::<tauri::menu::AboutMetadata>,
+            )?;
+            let services = PredefinedMenuItem::services(app, None)?;
+            let hide = PredefinedMenuItem::hide(app, None)?;
+            let hide_others = PredefinedMenuItem::hide_others(app, None)?;
+            let cut = PredefinedMenuItem::cut(app, None)?;
+            let copy = PredefinedMenuItem::copy(app, None)?;
+            let paste = PredefinedMenuItem::paste(app, None)?;
+            let select_all = PredefinedMenuItem::select_all(app, None)?;
+            let minimize = PredefinedMenuItem::minimize(app, None)?;
+            let close_window = PredefinedMenuItem::close_window(app, None)?;
+            let separator_a = PredefinedMenuItem::separator(app)?;
+            let separator_b = PredefinedMenuItem::separator(app)?;
+            let separator_c = PredefinedMenuItem::separator(app)?;
+
             let reload = MenuItemBuilder::new("Reload")
                 .id("reload")
                 .accelerator("CmdOrCtrl+R")
@@ -90,14 +108,35 @@ pub fn run() {
                 .build(app)?;
 
             let app_submenu = SubmenuBuilder::new(app, "CPA UI")
+                .item(&about)
+                .item(&separator_a)
+                .item(&services)
+                .item(&separator_b)
+                .item(&hide)
+                .item(&hide_others)
+                .item(&separator_c)
                 .item(&reload)
                 .item(&settings)
                 .separator()
                 .item(&quit)
                 .build()?;
 
+            let edit_submenu = SubmenuBuilder::new(app, "Edit")
+                .item(&cut)
+                .item(&copy)
+                .item(&paste)
+                .item(&select_all)
+                .build()?;
+
+            let window_submenu = SubmenuBuilder::new(app, "Window")
+                .item(&minimize)
+                .item(&close_window)
+                .build()?;
+
             let menu = MenuBuilder::new(app)
                 .item(&app_submenu)
+                .item(&edit_submenu)
+                .item(&window_submenu)
                 .build()?;
 
             app.set_menu(menu)?;

@@ -37,7 +37,7 @@ async function spawnWebview(url: string): Promise<Webview> {
   const { width, height } = await getLogicalSize();
 
   return new Promise<Webview>((resolve, reject) => {
-    const wv = new Webview(win, LABEL, { url, x: 0, y: 0, width, height });
+    const wv = new Webview(win, LABEL, { url, x: 0, y: 0, width, height, focus: true });
     wv.once('tauri://created', () => resolve(wv));
     wv.once('tauri://error', (e) => reject(new Error(String((e as any)?.payload ?? e))));
   });
@@ -56,6 +56,7 @@ const WebViewArea = forwardRef<WebViewAreaHandle, WebViewAreaProps>(
           if (tokenRef.current !== token) { wv.close(); return; }
           webviewRef.current = wv;
           wv.show(); // always show after spawn
+          wv.setFocus().catch(() => {});
         })
         .catch((e) => console.error('[WebViewArea] spawn failed:', e));
     };
@@ -63,7 +64,12 @@ const WebViewArea = forwardRef<WebViewAreaHandle, WebViewAreaProps>(
     useImperativeHandle(ref, () => ({
       reload: () => spawn(managementUrl),
       hide: () => webviewRef.current?.hide() ?? Promise.resolve(),
-      show: () => webviewRef.current?.show() ?? Promise.resolve(),
+      show: async () => {
+        const wv = webviewRef.current;
+        if (!wv) return;
+        await wv.show();
+        await wv.setFocus().catch(() => {});
+      },
     }));
 
     useEffect(() => {
@@ -97,6 +103,7 @@ const WebViewArea = forwardRef<WebViewAreaHandle, WebViewAreaProps>(
         const wv = webviewRef.current;
         if (wv) {
           await wv.show();
+          await wv.setFocus().catch(() => {});
         }
       }).then((fn) => { unlistens.push(fn); });
 

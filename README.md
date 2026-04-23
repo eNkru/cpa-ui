@@ -65,3 +65,6 @@ src-tauri/            Rust backend
 - [React 19](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
 - [Vite](https://vitejs.dev/) — frontend build
 - [Vitest](https://vitest.dev/) — unit tests (`npm test`)
+
+## Special thanks
+[LINUX DO](https://linux.do/)

@@ -7,14 +7,22 @@ use tauri::menu::{MenuBuilder, MenuItemBuilder, PredefinedMenuItem, SubmenuBuild
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AppConfig {
-    pub management_url: String,
+    pub host: String,
+    pub port: u16,
 }
 
 impl Default for AppConfig {
     fn default() -> Self {
         Self {
-            management_url: "http://localhost:8317/management.html#/".to_string(),
+            host: "localhost".to_string(),
+            port: 8317,
         }
+    }
+}
+
+impl AppConfig {
+    pub fn management_url(&self) -> String {
+        format!("http://{}:{}/management.html#/", self.host, self.port)
     }
 }
 
@@ -32,20 +40,29 @@ fn handle_run_event(app: &tauri::AppHandle, event: &tauri::RunEvent) {
 #[cfg(not(target_os = "macos"))]
 fn handle_run_event(_: &tauri::AppHandle, _: &tauri::RunEvent) {}
 
-pub fn validate_url(url: &str) -> Result<(), String> {
-    if url.starts_with("http://") || url.starts_with("https://") {
-        Ok(())
+pub fn validate_host(host: &str) -> Result<(), String> {
+    if host.is_empty() {
+        Err("Host cannot be empty".to_string())
     } else {
-        Err("Invalid URL: must start with http:// or https://".to_string())
+        Ok(())
+    }
+}
+
+pub fn validate_port(port: u16) -> Result<(), String> {
+    if port == 0 {
+        Err("Port must be between 1 and 65535".to_string())
+    } else {
+        Ok(())
     }
 }
 
 #[tauri::command]
-fn save_config(app: tauri::AppHandle, url: String) -> Result<(), String> {
-    validate_url(&url)?;
+fn save_config(app: tauri::AppHandle, host: String, port: u16) -> Result<(), String> {
+    validate_host(&host)?;
+    validate_port(port)?;
     let config_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
     fs::create_dir_all(&config_dir).map_err(|e| e.to_string())?;
-    let config = AppConfig { management_url: url };
+    let config = AppConfig { host, port };
     let json = serde_json::to_string(&config).map_err(|e| e.to_string())?;
     fs::write(config_dir.join("config.json"), json).map_err(|e| e.to_string())?;
     Ok(())

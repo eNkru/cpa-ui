@@ -1,17 +1,23 @@
 import { useEffect, useRef, useState } from 'react';
 import { listen } from '@tauri-apps/api/event';
-import { getConfig, DEFAULT_URL } from './lib/tauri';
+import { getConfig, buildManagementUrl, DEFAULT_HOST, DEFAULT_PORT } from './lib/tauri';
 import WebViewArea, { WebViewAreaHandle } from './components/WebViewArea';
 import ConfigModal from './components/ConfigModal';
 
 function App() {
-  const [managementUrl, setManagementUrl] = useState(DEFAULT_URL);
+  const [host, setHost] = useState(DEFAULT_HOST);
+  const [port, setPort] = useState(DEFAULT_PORT);
   const [showConfig, setShowConfig] = useState(false);
   const webviewRef = useRef<WebViewAreaHandle>(null);
 
+  const managementUrl = buildManagementUrl(host, port);
+
   useEffect(() => {
     getConfig()
-      .then((config) => setManagementUrl(config.managementUrl))
+      .then((config) => {
+        setHost(config.host);
+        setPort(config.port);
+      })
       .catch(() => {});
   }, []);
 
@@ -28,9 +34,10 @@ function App() {
     };
   }, []);
 
-  const handleSave = (newUrl: string) => {
+  const handleSave = (newHost: string, newPort: number) => {
     setShowConfig(false);
-    setManagementUrl(newUrl); // triggers WebViewArea to respawn with new URL
+    setHost(newHost);
+    setPort(newPort);
   };
 
   const handleClose = () => {
@@ -43,7 +50,8 @@ function App() {
       <WebViewArea ref={webviewRef} managementUrl={managementUrl} />
       {showConfig && (
         <ConfigModal
-          currentUrl={managementUrl}
+          currentHost={host}
+          currentPort={port}
           onSave={handleSave}
           onClose={handleClose}
         />
